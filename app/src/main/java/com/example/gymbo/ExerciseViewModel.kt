@@ -6,8 +6,8 @@ import androidx.lifecycle.ViewModel
 
 class ExerciseViewModel: ViewModel() {
     private val _exercises = MutableLiveData<List<Exercise>>(mutableListOf(
-        ResistanceExercise("Bicep curl", 15, 3, 10),
-        DistanceExercise("Treadmill", 5, DistanceUnit.KILOMETERS),
+        ResistanceExercise("Bicep curl", 15.0, 3, 10),
+        DistanceExercise("Treadmill", 5.0),
         CaloriesExercise("Rowing machine", 200)
     ))
 
