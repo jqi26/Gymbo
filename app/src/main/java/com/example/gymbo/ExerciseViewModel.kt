@@ -19,7 +19,15 @@ class ExerciseViewModel: ViewModel() {
 
     fun add(exercise: Exercise, sharedPreferences: SharedPreferences) {
         _exercises.value = _exercises.value?.plus(exercise)
+        saveList(sharedPreferences)
+    }
 
+    fun update(exercise: Exercise, sharedPreferences: SharedPreferences) {
+        _exercises.value = _exercises.value?.minusElement(exercise)
+        add(exercise, sharedPreferences)
+    }
+
+    private fun saveList(sharedPreferences: SharedPreferences) {
         with(sharedPreferences.edit()) {
             putStringSet(EXERCISES, exercises.value?.map{ it.serialize() }?.toSet())
             apply()

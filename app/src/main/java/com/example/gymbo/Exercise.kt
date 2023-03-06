@@ -12,6 +12,14 @@ abstract class Exercise(val name: String) {
     abstract fun getSummary(): String
     abstract fun serialize(): String
 
+    override fun equals(other: Any?): Boolean {
+        return if (other is Exercise) {
+            this.name == other.name && this.type == other.type
+        } else {
+            false
+        }
+    }
+
     companion object {
         fun deserialize(string: String): Exercise {
             val stringComponents = string.split(", ")
@@ -48,7 +56,7 @@ abstract class Exercise(val name: String) {
     }
 }
 
-class ResistanceExercise(name: String, val weight: Double, val numSets: Int, val numReps: Int):
+class ResistanceExercise(name: String, var weight: Double, var numSets: Int, var numReps: Int):
     Exercise(name) {
     override val type = Type.RESISTANCE
 

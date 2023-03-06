@@ -443,10 +443,11 @@ fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navControll
                     "Back",
                     "Save",
                     onSuccess = { weight: Double, sets: Int, reps: Int ->
-                        viewModel.add(ResistanceExercise(
-                            selectedExercise.name,
-                            weight, sets, reps
-                        ), sharedPreferences)
+                        selectedExercise.weight = weight
+                        selectedExercise.numSets = sets
+                        selectedExercise.numReps = reps
+
+                        viewModel.update(selectedExercise, sharedPreferences)
 
                         navController.popBackStack()
                     },
