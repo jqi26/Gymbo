@@ -1,18 +1,14 @@
 package com.example.gymbo
 
-import android.graphics.fonts.FontStyle
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
@@ -23,10 +19,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
@@ -34,8 +28,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.gymbo.ui.theme.GymboTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<ExerciseViewModel>()
@@ -171,18 +163,20 @@ fun NewExercise(viewModel: ExerciseViewModel, onDismissRequest: () -> Unit) {
         }
 
         if (continuePressed) {
-            val handle = { success: Boolean ->
+            val resistanceSuccess = { weight: Double, sets: Int, reps: Int ->
+                viewModel.add(ResistanceExercise(name, weight, sets, reps))
                 continuePressed = false
+                onDismissRequest()
+            }
 
-                if (success) {
-                    onDismissRequest()
-                }
+            val failure = {
+                continuePressed = false
             }
 
             when (selectedIndex) {
-                0 -> ResistanceDialog(name, viewModel, handle)
-                1 -> CaloriesDialog(name, viewModel, handle)
-                2 -> DistanceDialog(name, viewModel, handle)
+                0 -> ResistanceDialog(failure, resistanceSuccess)
+//                1 -> CaloriesDialog(name, viewModel, failure })
+//                2 -> DistanceDialog(name, viewModel, failure)
             }
         }
     }
@@ -190,8 +184,8 @@ fun NewExercise(viewModel: ExerciseViewModel, onDismissRequest: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
-    Dialog(onDismissRequest = { onDismissRequest(false) }) {
+fun ResistanceDialog(onFailure: () -> Unit, onSuccess: (weight: Double, sets: Int, reps: Int) -> Unit) {
+    Dialog(onDismissRequest = onFailure) {
         Surface(
             modifier = Modifier
                 .wrapContentWidth()
@@ -199,7 +193,8 @@ fun ResistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissReques
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                ResistanceForm(name, null, viewModel, onDismissRequest)
+                ResistanceForm(null, "Back", "Add",
+                    onFailure, onSuccess)
             }
         }
     }
@@ -207,10 +202,15 @@ fun ResistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissReques
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ResistanceForm(name: String, exercise: Exercise?, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
-    var weight by remember { mutableStateOf("") }
-    var sets by remember { mutableStateOf("") }
-    var reps by remember { mutableStateOf("") }
+fun ResistanceForm(
+    exercise: ResistanceExercise?, negativeButtonName: String,
+    positiveButtonName: String,
+    onFailure: () -> Unit,
+    onSuccess: (weight: Double, sets: Int, reps: Int) -> Unit
+) {
+    var weight by remember { mutableStateOf((exercise?.weight ?: "").toString()) }
+    var sets by remember { mutableStateOf((exercise?.numSets ?: "").toString()) }
+    var reps by remember { mutableStateOf((exercise?.numReps ?: "").toString()) }
 
     var weightError: String? by remember { mutableStateOf(null) }
     var setsError: String? by remember { mutableStateOf(null) }
@@ -259,9 +259,9 @@ fun ResistanceForm(name: String, exercise: Exercise?, viewModel: ExerciseViewMod
     )
 
     Row {
-        Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
+        Button(onClick = onFailure, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
             contentColor = Color.White)) {
-            Text("Back")
+            Text(negativeButtonName)
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -276,11 +276,10 @@ fun ResistanceForm(name: String, exercise: Exercise?, viewModel: ExerciseViewMod
             } else if (weight.isBlank()) {
                 weightError = "Weight cannot be empty."
             } else {
-                viewModel.add(ResistanceExercise(name, weight.toDouble(), sets.toInt(), reps.toInt()))
-                onDismissRequest(true)
+                onSuccess(weight.toDouble(), sets.toInt(), reps.toInt())
             }
         }) {
-            Text("Add")
+            Text(positiveButtonName)
         }
     }
 }
@@ -427,10 +426,21 @@ fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navControll
         if (selectedExercise != null) {
             if (selectedExercise is ResistanceExercise) {
                 ResistanceForm(
-                    name = selectedExercise.name,
                     selectedExercise,
-                    viewModel = viewModel,
-                    onDismissRequest = { navController.popBackStack() })
+                    "Back",
+                    "Save",
+                    onSuccess = { weight: Double, sets: Int, reps: Int ->
+                        viewModel.add(ResistanceExercise(
+                            selectedExercise.name,
+                            weight, sets, reps
+                        ))
+
+                        navController.popBackStack()
+                    },
+                    onFailure = {
+                        navController.popBackStack()
+                    }
+                )
             }
         }
     }
