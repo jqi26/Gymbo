@@ -29,6 +29,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.gymbo.ui.theme.GymboTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -52,12 +56,24 @@ class MainActivity : ComponentActivity() {
                             contentDescription = "Add"
                         )
                     } },
-                ) {
-                    List(viewModel,
-                        Modifier
-                            .fillMaxSize()
-                            .padding(8.dp, 8.dp, 8.dp, 8.dp)
-                            .padding(it))
+                ) { padding ->
+                    val navController = rememberNavController()
+
+                    NavHost(navController = navController, startDestination = "profile") {
+                        composable("profile") { List(viewModel,
+                            Modifier
+                                .fillMaxSize()
+                                .padding(8.dp, 8.dp, 8.dp, 8.dp)
+                                .padding(padding), navController) }
+
+                        composable("exercise") {
+                            SingleExercise(viewModel,
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(8.dp, 8.dp, 8.dp, 8.dp)
+                                    .padding(padding), navController)
+                        }
+                    }
                 }
 
                 if (showDialog) {
@@ -183,82 +199,88 @@ fun ResistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissReques
             shape = MaterialTheme.shapes.large
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                var weight by remember { mutableStateOf("") }
-                var sets by remember { mutableStateOf("") }
-                var reps by remember { mutableStateOf("") }
-
-                var weightError: String? by remember { mutableStateOf(null) }
-                var setsError: String? by remember { mutableStateOf(null) }
-                var repsError: String? by remember { mutableStateOf(null) }
-
-                androidx.compose.material3.OutlinedTextField(
-                    value = weight,
-                    onValueChange = {
-                        weight = it
-                    },
-                    label = { Text("Weight (kg)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                    supportingText = {
-                        Text(weightError ?: "", color = Color.Red)
-                    },
-                    isError = weightError != null,
-                )
-
-                androidx.compose.material3.OutlinedTextField(
-                    value = sets,
-                    onValueChange = {
-                        sets = it
-                    },
-                    label = { Text("Number of sets") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                    supportingText = {
-                        Text(setsError ?: "", color = Color.Red)
-                    },
-                    isError = setsError != null,
-                )
-
-                androidx.compose.material3.OutlinedTextField(
-                    value = reps,
-                    onValueChange = {
-                        reps = it
-                    },
-                    label = { Text("Reps per set") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                    supportingText = {
-                        Text(repsError ?: "", color = Color.Red)
-                    },
-                    isError = weightError != null,
-                )
-
-                Row {
-                    Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
-                        contentColor = Color.White)) {
-                        Text("Back")
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Button(onClick = {
-                        if (weight.isBlank()) {
-                            weightError = "Weight cannot be empty."
-                        } else if (sets.isBlank()) {
-                            setsError = "Number of sets cannot be empty."
-                        } else if (reps.isBlank()) {
-                            repsError = "Number of reps cannot be empty."
-                        } else if (weight.isBlank()) {
-                        weightError = "Weight cannot be empty."
-                        } else {
-                            viewModel.add(ResistanceExercise(name, weight.toDouble(), sets.toInt(), reps.toInt()))
-                            onDismissRequest(true)
-                        }
-                    }) {
-                        Text("Add")
-                    }
-                }
+                ResistanceForm(name, null, viewModel, onDismissRequest)
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResistanceForm(name: String, exercise: Exercise?, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
+    var weight by remember { mutableStateOf("") }
+    var sets by remember { mutableStateOf("") }
+    var reps by remember { mutableStateOf("") }
+
+    var weightError: String? by remember { mutableStateOf(null) }
+    var setsError: String? by remember { mutableStateOf(null) }
+    var repsError: String? by remember { mutableStateOf(null) }
+
+    androidx.compose.material3.OutlinedTextField(
+        value = weight,
+        onValueChange = {
+            weight = it
+        },
+        label = { Text("Weight (kg)") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+        supportingText = {
+            Text(weightError ?: "", color = Color.Red)
+        },
+        isError = weightError != null,
+    )
+
+    androidx.compose.material3.OutlinedTextField(
+        value = sets,
+        onValueChange = {
+            sets = it
+        },
+        label = { Text("Number of sets") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+        supportingText = {
+            Text(setsError ?: "", color = Color.Red)
+        },
+        isError = setsError != null,
+    )
+
+    androidx.compose.material3.OutlinedTextField(
+        value = reps,
+        onValueChange = {
+            reps = it
+        },
+        label = { Text("Reps per set") },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+        supportingText = {
+            Text(repsError ?: "", color = Color.Red)
+        },
+        isError = weightError != null,
+    )
+
+    Row {
+        Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
+            contentColor = Color.White)) {
+            Text("Back")
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Button(onClick = {
+            if (weight.isBlank()) {
+                weightError = "Weight cannot be empty."
+            } else if (sets.isBlank()) {
+                setsError = "Number of sets cannot be empty."
+            } else if (reps.isBlank()) {
+                repsError = "Number of reps cannot be empty."
+            } else if (weight.isBlank()) {
+                weightError = "Weight cannot be empty."
+            } else {
+                viewModel.add(ResistanceExercise(name, weight.toDouble(), sets.toInt(), reps.toInt()))
+                onDismissRequest(true)
+            }
+        }) {
+            Text("Add")
         }
     }
 }
@@ -388,19 +410,38 @@ fun DistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissRequest:
 }
 
 @Composable
-fun List(viewModel: ExerciseViewModel, modifier: Modifier) {
+fun List(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController) {
     val exercises: List<Exercise> by viewModel.exercises.observeAsState(listOf())
 
     LazyColumn(modifier = modifier) {
         items(exercises) {
-            Exercise(it)
+            Exercise(it, viewModel, navController)
         }
     }
 }
 
 @Composable
-fun Exercise(exercise: Exercise) {
-    Column {
+fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController) {
+    Column(modifier = modifier) {
+        val selectedExercise = viewModel.selectedExercise
+        if (selectedExercise != null) {
+            if (selectedExercise is ResistanceExercise) {
+                ResistanceForm(
+                    name = selectedExercise.name,
+                    selectedExercise,
+                    viewModel = viewModel,
+                    onDismissRequest = { navController.popBackStack() })
+            }
+        }
+    }
+}
+
+@Composable
+fun Exercise(exercise: Exercise, viewModel: ExerciseViewModel, navController: NavController) {
+    Column(modifier = Modifier.clickable {
+        navController.navigate("exercise")
+        viewModel.selectedExercise = exercise
+    }) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Row {

@@ -5,6 +5,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
 class ExerciseViewModel: ViewModel() {
+    var selectedExercise: Exercise? = null
+
     private val _exercises = MutableLiveData<List<Exercise>>(mutableListOf(
         ResistanceExercise("Bicep curl", 15.0, 3, 10),
         DistanceExercise("Treadmill", 5.0),
