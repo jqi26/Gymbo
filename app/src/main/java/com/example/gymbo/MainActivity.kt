@@ -1,5 +1,7 @@
 package com.example.gymbo
 
+import android.content.Context
+import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,8 +34,19 @@ import com.example.gymbo.ui.theme.GymboTheme
 class MainActivity : ComponentActivity() {
     private val viewModel by viewModels<ExerciseViewModel>()
 
+    private lateinit var sharedPreferences: SharedPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        sharedPreferences = getPreferences(Context.MODE_PRIVATE)
+
+        val exerciseStrings = sharedPreferences.getStringSet(ExerciseViewModel.EXERCISES, setOf<String>())
+        val exercises = exerciseStrings?.map { Exercise.deserialize(it) }
+
+        if (exercises != null) {
+            viewModel.setExercises(exercises.toList())
+        }
+
         setContent {
             var showDialog by remember { mutableStateOf(false) }
 
@@ -63,13 +76,13 @@ class MainActivity : ComponentActivity() {
                                 Modifier
                                     .fillMaxSize()
                                     .padding(8.dp, 8.dp, 8.dp, 8.dp)
-                                    .padding(padding), navController)
+                                    .padding(padding), navController, sharedPreferences)
                         }
                     }
                 }
 
                 if (showDialog) {
-                    NewExercise(viewModel) { showDialog = false }
+                    NewExercise(viewModel, sharedPreferences) { showDialog = false }
                 }
             }
         }
@@ -78,7 +91,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NewExercise(viewModel: ExerciseViewModel, onDismissRequest: () -> Unit) {
+fun NewExercise(viewModel: ExerciseViewModel, sharedPreferences: SharedPreferences, onDismissRequest: () -> Unit) {
     Dialog(onDismissRequest = onDismissRequest) {
         var selectedIndex by remember { mutableStateOf(0) }
         var continuePressed by remember { mutableStateOf(false) }
@@ -164,7 +177,7 @@ fun NewExercise(viewModel: ExerciseViewModel, onDismissRequest: () -> Unit) {
 
         if (continuePressed) {
             val resistanceSuccess = { weight: Double, sets: Int, reps: Int ->
-                viewModel.add(ResistanceExercise(name, weight, sets, reps))
+                viewModel.add(ResistanceExercise(name, weight, sets, reps), sharedPreferences)
                 continuePressed = false
                 onDismissRequest()
             }
@@ -284,129 +297,129 @@ fun ResistanceForm(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CaloriesDialog(name: String, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
-    Dialog(onDismissRequest = { onDismissRequest(false) }) {
-        Surface(
-            modifier = Modifier
-                .wrapContentWidth()
-                .wrapContentHeight(),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                var calories by remember { mutableStateOf("") }
-                var caloriesError: String? by remember { mutableStateOf("") }
-
-                androidx.compose.material3.OutlinedTextField(
-                    value = calories,
-                    onValueChange = {
-                        calories = it
-                    },
-                    label = { Text("calories (cals)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                    supportingText = {
-                        Text(caloriesError ?: "", color = Color.Red)
-                    },
-                    isError = caloriesError != null,
-                )
-
-                Row {
-                    Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
-                        contentColor = Color.White)) {
-                        Text("Back")
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Button(onClick = {
-                        if (calories.isBlank()) {
-                            caloriesError = "Calories cannot be empty."
-                        } else {
-                            try {
-                                val caloriesInt = calories.toInt()
-
-                                if (caloriesInt >= 0) {
-                                    viewModel.add(CaloriesExercise(name, caloriesInt))
-                                    onDismissRequest(true)
-                                } else {
-                                    caloriesError = "Calories cannot be negative."
-                                }
-                            } catch (e: java.lang.NumberFormatException) {
-                                caloriesError = "Calories must be an integer."
-                            }
-                        }
-                    }) {
-                        Text("Add")
-                    }
-                }
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
-    Dialog(onDismissRequest = { onDismissRequest(false) }) {
-        Surface(
-            modifier = Modifier
-                .wrapContentWidth()
-                .wrapContentHeight(),
-            shape = MaterialTheme.shapes.large
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                var distance by remember { mutableStateOf("") }
-                var distanceError: String? by remember { mutableStateOf("") }
-
-                androidx.compose.material3.OutlinedTextField(
-                    value = distance,
-                    onValueChange = {
-                        distance = it
-                    },
-                    label = { Text("distance (km)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
-                    supportingText = {
-                        Text(distanceError ?: "", color = Color.Red)
-                    },
-                    isError = distanceError != null,
-                )
-
-                Row {
-                    Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
-                        contentColor = Color.White)) {
-                        Text("Back")
-                    }
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Button(onClick = {
-                        if (distance.isBlank()) {
-                            distanceError = "Distance cannot be empty."
-                        } else {
-                            try {
-                                val distanceDouble = distance.toDouble()
-
-                                if (distanceDouble >= 0) {
-                                    viewModel.add(DistanceExercise(name, distanceDouble))
-                                    onDismissRequest(true)
-                                } else {
-                                    distanceError = "Distance cannot be negative."
-                                }
-                            } catch (e: java.lang.NumberFormatException) {
-                                distanceError = "Distance must be an integer or decimal."
-                            }
-                        }
-                    }) {
-                        Text("Add")
-                    }
-                }
-            }
-        }
-    }
-}
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun CaloriesDialog(name: String, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
+//    Dialog(onDismissRequest = { onDismissRequest(false) }) {
+//        Surface(
+//            modifier = Modifier
+//                .wrapContentWidth()
+//                .wrapContentHeight(),
+//            shape = MaterialTheme.shapes.large
+//        ) {
+//            Column(modifier = Modifier.padding(16.dp)) {
+//                var calories by remember { mutableStateOf("") }
+//                var caloriesError: String? by remember { mutableStateOf("") }
+//
+//                androidx.compose.material3.OutlinedTextField(
+//                    value = calories,
+//                    onValueChange = {
+//                        calories = it
+//                    },
+//                    label = { Text("calories (cals)") },
+//                    singleLine = true,
+//                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+//                    supportingText = {
+//                        Text(caloriesError ?: "", color = Color.Red)
+//                    },
+//                    isError = caloriesError != null,
+//                )
+//
+//                Row {
+//                    Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
+//                        contentColor = Color.White)) {
+//                        Text("Back")
+//                    }
+//
+//                    Spacer(modifier = Modifier.weight(1f))
+//
+//                    Button(onClick = {
+//                        if (calories.isBlank()) {
+//                            caloriesError = "Calories cannot be empty."
+//                        } else {
+//                            try {
+//                                val caloriesInt = calories.toInt()
+//
+//                                if (caloriesInt >= 0) {
+//                                    viewModel.add(CaloriesExercise(name, caloriesInt))
+//                                    onDismissRequest(true)
+//                                } else {
+//                                    caloriesError = "Calories cannot be negative."
+//                                }
+//                            } catch (e: java.lang.NumberFormatException) {
+//                                caloriesError = "Calories must be an integer."
+//                            }
+//                        }
+//                    }) {
+//                        Text("Add")
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
+//
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun DistanceDialog(name: String, viewModel: ExerciseViewModel, onDismissRequest: (success: Boolean) -> Unit) {
+//    Dialog(onDismissRequest = { onDismissRequest(false) }) {
+//        Surface(
+//            modifier = Modifier
+//                .wrapContentWidth()
+//                .wrapContentHeight(),
+//            shape = MaterialTheme.shapes.large
+//        ) {
+//            Column(modifier = Modifier.padding(16.dp)) {
+//                var distance by remember { mutableStateOf("") }
+//                var distanceError: String? by remember { mutableStateOf("") }
+//
+//                androidx.compose.material3.OutlinedTextField(
+//                    value = distance,
+//                    onValueChange = {
+//                        distance = it
+//                    },
+//                    label = { Text("distance (km)") },
+//                    singleLine = true,
+//                    keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number),
+//                    supportingText = {
+//                        Text(distanceError ?: "", color = Color.Red)
+//                    },
+//                    isError = distanceError != null,
+//                )
+//
+//                Row {
+//                    Button(onClick = { onDismissRequest(false) }, colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red,
+//                        contentColor = Color.White)) {
+//                        Text("Back")
+//                    }
+//
+//                    Spacer(modifier = Modifier.weight(1f))
+//
+//                    Button(onClick = {
+//                        if (distance.isBlank()) {
+//                            distanceError = "Distance cannot be empty."
+//                        } else {
+//                            try {
+//                                val distanceDouble = distance.toDouble()
+//
+//                                if (distanceDouble >= 0) {
+//                                    viewModel.add(DistanceExercise(name, distanceDouble))
+//                                    onDismissRequest(true)
+//                                } else {
+//                                    distanceError = "Distance cannot be negative."
+//                                }
+//                            } catch (e: java.lang.NumberFormatException) {
+//                                distanceError = "Distance must be an integer or decimal."
+//                            }
+//                        }
+//                    }) {
+//                        Text("Add")
+//                    }
+//                }
+//            }
+//        }
+//    }
+//}
 
 @Composable
 fun List(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController) {
@@ -420,7 +433,7 @@ fun List(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavCon
 }
 
 @Composable
-fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController) {
+fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController, sharedPreferences: SharedPreferences) {
     Column(modifier = modifier) {
         val selectedExercise = viewModel.selectedExercise
         if (selectedExercise != null) {
@@ -433,7 +446,7 @@ fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navControll
                         viewModel.add(ResistanceExercise(
                             selectedExercise.name,
                             weight, sets, reps
-                        ))
+                        ), sharedPreferences)
 
                         navController.popBackStack()
                     },

@@ -1,5 +1,6 @@
 package com.example.gymbo
 
+import android.content.SharedPreferences
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -16,8 +17,13 @@ class ExerciseViewModel: ViewModel() {
     val exercises: LiveData<List<Exercise>>
         get() = _exercises
 
-    fun add(exercise: Exercise) {
+    fun add(exercise: Exercise, sharedPreferences: SharedPreferences) {
         _exercises.value = _exercises.value?.plus(exercise)
+
+        with(sharedPreferences.edit()) {
+            putStringSet(EXERCISES, exercises.value?.map{ it.serialize() }?.toSet())
+            apply()
+        }
     }
 
     fun remove(index: Int) {
@@ -26,5 +32,13 @@ class ExerciseViewModel: ViewModel() {
         if (exercises != null) {
             _exercises.value = exercises.subList(0, index).plus(exercises.subList(index + 1, exercises.count()))
         }
+    }
+
+    fun setExercises(items: List<Exercise>) {
+        _exercises.value = items.toMutableList()
+    }
+
+    companion object {
+        const val EXERCISES = "Exercises"
     }
 }
