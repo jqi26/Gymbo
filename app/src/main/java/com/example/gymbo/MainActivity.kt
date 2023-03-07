@@ -52,31 +52,21 @@ class MainActivity : ComponentActivity() {
 
             GymboTheme {
                 // A surface container using the 'background' color from the theme
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    floatingActionButtonPosition = FabPosition.End,
-                    floatingActionButton = { FloatingActionButton(onClick = { showDialog = true }) {
-                        Image(
-                            painter = painterResource(id = R.drawable.baseline_add_24),
-                            contentDescription = "Add"
-                        )
-                    } },
-                ) { padding ->
                     val navController = rememberNavController()
 
                     NavHost(navController = navController, startDestination = "profile") {
                         composable("profile") { List(viewModel,
                             Modifier
                                 .fillMaxSize()
-                                .padding(8.dp, 8.dp, 8.dp, 8.dp)
-                                .padding(padding), navController) }
+                                .padding(8.dp, 8.dp, 8.dp, 8.dp), navController
+                        ) { showDialog = true }
+                        }
 
                         composable("exercise") {
                             SingleExercise(viewModel,
                                 Modifier
                                     .fillMaxSize()
-                                    .padding(8.dp, 8.dp, 8.dp, 8.dp)
-                                    .padding(padding), navController, sharedPreferences)
+                                    .padding(8.dp, 8.dp, 8.dp, 8.dp), navController, sharedPreferences)
                         }
                     }
                 }
@@ -84,7 +74,6 @@ class MainActivity : ComponentActivity() {
                 if (showDialog) {
                     NewExercise(viewModel, sharedPreferences) { showDialog = false }
                 }
-            }
         }
     }
 }
@@ -422,12 +411,23 @@ fun ResistanceForm(
 //}
 
 @Composable
-fun List(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController) {
-    val exercises: List<Exercise> by viewModel.exercises.observeAsState(listOf())
+fun List(viewModel: ExerciseViewModel, modifier: Modifier, navController: NavController, fabAction: () -> Unit) {
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        floatingActionButtonPosition = FabPosition.End,
+        floatingActionButton = { FloatingActionButton(onClick = fabAction) {
+            Image(
+                painter = painterResource(id = R.drawable.baseline_add_24),
+                contentDescription = "Add"
+            )
+        } },
+    ) { padding ->
+        val exercises: List<Exercise> by viewModel.exercises.observeAsState(listOf())
 
-    LazyColumn(modifier = modifier) {
-        items(exercises) {
-            Exercise(it, viewModel, navController)
+        LazyColumn(modifier = modifier.padding(padding)) {
+            items(exercises) {
+                Exercise(it, viewModel, navController)
+            }
         }
     }
 }
