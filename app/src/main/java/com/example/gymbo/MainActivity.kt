@@ -440,7 +440,7 @@ fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navControll
             if (selectedExercise is ResistanceExercise) {
                 ResistanceForm(
                     selectedExercise,
-                    "Back",
+                    "Delete",
                     "Save",
                     onSuccess = { weight: Double, sets: Int, reps: Int ->
                         selectedExercise.weight = weight
@@ -448,10 +448,10 @@ fun SingleExercise(viewModel: ExerciseViewModel, modifier: Modifier, navControll
                         selectedExercise.numReps = reps
 
                         viewModel.update(selectedExercise, sharedPreferences)
-
                         navController.popBackStack()
                     },
                     onFailure = {
+                        viewModel.remove(selectedExercise, sharedPreferences)
                         navController.popBackStack()
                     }
                 )

@@ -34,12 +34,9 @@ class ExerciseViewModel: ViewModel() {
         }
     }
 
-    fun remove(index: Int) {
-        val exercises = _exercises.value
-
-        if (exercises != null) {
-            _exercises.value = exercises.subList(0, index).plus(exercises.subList(index + 1, exercises.count()))
-        }
+    fun remove(exercise: Exercise, sharedPreferences: SharedPreferences) {
+        _exercises.value = _exercises.value?.minusElement(exercise)
+        saveList(sharedPreferences)
     }
 
     fun setExercises(items: List<Exercise>) {
